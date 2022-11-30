@@ -3,8 +3,12 @@ import numpy as np
 import requests
 import re
 import os
+import sys
+sys.path.append('.')
 from time import sleep
 from bs4 import BeautifulSoup
+
+from src.app.findplayer import get_player_info
 
 base_header = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
@@ -48,6 +52,19 @@ full_to_abbr = {
     'Utah Jazz': 'UTA',
     'Washington Wizards': 'WAS'
 }
+
+def calculate_minutes(data, playerinfo, overtimes):
+    team_id = playerinfo.loc[:, "TEAM_ID"]
+    player_id = playerinfo.loc[:, "PERSON_ID"]
+    if os.path.isdir(f'src/data/teamdashplayers/{team_id}'):
+        os.mkdir(f'src/data/teamdashplayers/{team_id}')
+    if os.path.isdir(f'src/data/teamdashplayers/{team_id}/{player_id}'):
+        os.mkdir(f'src/data/teamdashplayers/{team_id}/{player_id}')
+    
+    for row in data.itertuples():
+        count = 0
+        
+    
 
 def bref_scrape_schedule(seasons:list=[2022]):
     base_url = 'https://www.basketball-reference.com/leagues/NBA_{}_games-{}.html' # ex) 2023 => 2022-23
@@ -113,6 +130,7 @@ def bref_scrape_margin(url:str):
     print('Creating Away Players timetable...')
     for idx in range(0, away_length):
         player_name = re.findall("(.*)\s\(", away_player[idx].text)[0]
+        player_info = get_player_info(player_name)
         bars = away_bar[idx].select('div')
         actual_width = int(table_width) - 1 - len(bars)        
         status = []; minute = []; margin = []
@@ -133,6 +151,7 @@ def bref_scrape_margin(url:str):
         df = df.T
         df.columns = ['MinutesPlayed', 'ScoreMargin', 'Status']
         df.to_csv(f'{filename}/{away_team}/{player_name}.csv')
+        calculate_minutes(df, player_info)
         
     home_length = len(home_player)
     print('Creating Home Players timetable...')
