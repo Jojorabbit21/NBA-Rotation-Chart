@@ -53,16 +53,97 @@ full_to_abbr = {
     'Washington Wizards': 'WAS'
 }
 
-def calculate_minutes(data, playerinfo, overtimes):
-    team_id = playerinfo.loc[:, "TEAM_ID"]
-    player_id = playerinfo.loc[:, "PERSON_ID"]
-    if os.path.isdir(f'src/data/teamdashplayers/{team_id}'):
-        os.mkdir(f'src/data/teamdashplayers/{team_id}')
-    if os.path.isdir(f'src/data/teamdashplayers/{team_id}/{player_id}'):
-        os.mkdir(f'src/data/teamdashplayers/{team_id}/{player_id}')
+def calculate_minutes(data, playerinfo):
+    team_id = playerinfo.loc[:, "TEAM_ID"].item()
+    player_id = playerinfo.loc[:, "PERSON_ID"].item()
+    player_name = playerinfo.loc[:, "DISPLAY_FIRST_LAST"].item()
     
-    for row in data.itertuples():
-        count = 0
+    mp = data['MinutesPlayed'].to_numpy()
+    io = data['Status'].to_numpy()
+    arr = np.array([])
+    count = 0
+    
+    '''
+    
+    it = np.nditer(mp, flags=['f_index'])
+    for val in it:
+        idx = it.index
+        # Break after 48 minutes of regular game time
+        count += val
+        if count >= 48:
+            break
+        
+        # Divide value into integer and float
+        _int = int(val)
+        _flt = val - int(val)
+        
+        # Start
+        if idx == 0:
+            if io[idx] == 1:
+                arr = np.append(arr, np.ones(shape=(_int, )))
+            else:
+                arr = np.append(arr, np.zeros(shape=(_int, )))
+            arr = np.append(arr, [_flt])
+        else:
+            prev = arr[-1]
+            if io[idx] == 1:
+                if io[idx-1] == 1:
+                    if prev + _flt > 1:
+                        extra = 1 - (prev + _flt) # ie) 1 - (0.7 + 0.41) = 0.11
+                        arr[-1] = 1
+                        arr = np.append(arr, np.ones(shape=(_int, )))
+                        arr = np.append(arr, [extra])
+                    else:
+                        rest = 1 - (prev + _flt) # ie) 1 - (0.35 + 0.45) = 0.2 
+                        arr[-1] = 1
+                        arr = np.append(arr, np.ones(shape=((_int - 1),)))
+                        arr = np.append(arr, [1 - rest])
+                else:
+                    if _flt > (1 - prev): # (1 - 0.45) => 0.55 - 0.75 => -0.25
+                        need = _flt - (1 - prev)
+                    else:
+                        need = (1 - prev) - _flt  
+                    arr[-1] = 1 - prev
+                    arr = np.append(arr, np.ones(shape=((_int - 1), )))
+                    arr = np.append(arr, [1 - need])
+            else:
+                if io[idx-1] == 1: # ie) 1-0.65 => 0.35 - 0.55 
+                    if _flt > (1 - prev):
+                        extra = _flt - (1 - prev)
+                    else:
+                        extra = (1 - prev) - _flt
+                    arr = np.append(arr, np.zeros(shape=((_int - 1), )))
+                    arr = np.append(arr, [extra])
+                else:
+                    if prev + _flt > 1:
+                        extra = (prev + _flt) - 1
+                    else:
+                        extra = 1 - (prev + _flt)
+                    arr[-1] = 0
+                    arr = np.append(arr, np.zeros(shape=(_int - 1, )))
+                    arr = np.append(arr, [extra])'''
+    
+    for i in range(len(mp)):
+        a = round(mp[i], 2)
+        b = round(mp[i+1], 2)
+        if a + b > 12:
+            to_sum = (12 - a) - b
+        elif a + b < 12:
+            to_minus = 12 - (a + b)
+        
+            
+        
+                   
+    print(player_name)    
+    print(arr)
+    print(len(arr))
+    # if not os.path.isdir(f'src/data/teamdashplayers/{team_id}'):
+    #     os.mkdir(f'src/data/teamdashplayers/{team_id}')
+    # if not os.path.isdir(f'src/data/teamdashplayers/{team_id}/{player_id}'):
+    #     os.mkdir(f'src/data/teamdashplayers/{team_id}/{player_id}')
+    # df = pd.DataFrame(arr)
+    # df.to_csv(f'src/data/teamdashplayers/{team_id}/{player_id}/{player_id}.csv', mode='a')
+                
         
     
 
@@ -98,7 +179,7 @@ def bref_scrape_schedule(seasons:list=[2022]):
     df = pd.DataFrame(data=boxscore_url, columns=['boxscore_url'])
     df.to_csv(f'src/data/schedules/bref_{season}.csv')
 
-def bref_scrape_margin(url:str):
+def bref_scrape_chart(url:str):
     response = requests.get(url, headers=base_header)
     html = response.text
     soup = BeautifulSoup(html, 'lxml')
@@ -157,6 +238,7 @@ def bref_scrape_margin(url:str):
     print('Creating Home Players timetable...')
     for idx in range(0, home_length):
         player_name = re.findall("(.*)\s\(", home_player[idx].text)[0]
+        player_info = get_player_info(player_name)
         bars = home_bar[idx].select('div')
         actual_width = int(table_width) - 1 - len(bars)        
         status = []; minute = []; margin = []
@@ -177,6 +259,7 @@ def bref_scrape_margin(url:str):
         df = df.T
         df.columns = ['MinutesPlayed', 'ScoreMargin', 'Status']
         df.to_csv(f'{filename}/{home_team}/{player_name}.csv')
+        calculate_minutes(df, player_info)
 
 
-bref_scrape_margin('https://www.basketball-reference.com/boxscores/plus-minus/202211280BOS.html')
+bref_scrape_chart('https://www.basketball-reference.com/boxscores/plus-minus/202211280BOS.html')
