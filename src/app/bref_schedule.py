@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+np.set_printoptions(suppress=True, formatter={'float_kind':'{:f}'.format})
 import requests
 import re
 import os
@@ -58,91 +59,54 @@ def calculate_minutes(data, playerinfo):
     player_id = playerinfo.loc[:, "PERSON_ID"].item()
     player_name = playerinfo.loc[:, "DISPLAY_FIRST_LAST"].item()
     
-    mp = data['MinutesPlayed'].to_numpy()
-    io = data['Status'].to_numpy()
-    arr = np.array([])
-    count = 0
-    
-    '''
-    
-    it = np.nditer(mp, flags=['f_index'])
-    for val in it:
-        idx = it.index
-        # Break after 48 minutes of regular game time
-        count += val
-        if count >= 48:
-            break
-        
-        # Divide value into integer and float
-        _int = int(val)
-        _flt = val - int(val)
-        
-        # Start
-        if idx == 0:
-            if io[idx] == 1:
-                arr = np.append(arr, np.ones(shape=(_int, )))
+    mp = data['MinutesPlayed'].to_numpy(dtype=np.float64)
+    io = data['Status'].to_numpy(dtype=np.int32)
+
+    arr_mp = np.ndarray(shape=(1,))
+    arr_io = np.ndarray(shape=(1,))
+
+    # Integrate consecutive playing times
+    l = len(mp)
+    for i in range(0, l, 2):
+        if i < l-1:
+            if io[i] == io[i+1]:
+                arr_mp = np.append(arr_mp, np.sum(mp[i:i+2], dtype=np.float64))
+                arr_io = np.append(arr_io, [io[i]])
             else:
-                arr = np.append(arr, np.zeros(shape=(_int, )))
-            arr = np.append(arr, [_flt])
-        else:
-            prev = arr[-1]
-            if io[idx] == 1:
-                if io[idx-1] == 1:
-                    if prev + _flt > 1:
-                        extra = 1 - (prev + _flt) # ie) 1 - (0.7 + 0.41) = 0.11
-                        arr[-1] = 1
-                        arr = np.append(arr, np.ones(shape=(_int, )))
-                        arr = np.append(arr, [extra])
-                    else:
-                        rest = 1 - (prev + _flt) # ie) 1 - (0.35 + 0.45) = 0.2 
-                        arr[-1] = 1
-                        arr = np.append(arr, np.ones(shape=((_int - 1),)))
-                        arr = np.append(arr, [1 - rest])
-                else:
-                    if _flt > (1 - prev): # (1 - 0.45) => 0.55 - 0.75 => -0.25
-                        need = _flt - (1 - prev)
-                    else:
-                        need = (1 - prev) - _flt  
-                    arr[-1] = 1 - prev
-                    arr = np.append(arr, np.ones(shape=((_int - 1), )))
-                    arr = np.append(arr, [1 - need])
-            else:
-                if io[idx-1] == 1: # ie) 1-0.65 => 0.35 - 0.55 
-                    if _flt > (1 - prev):
-                        extra = _flt - (1 - prev)
-                    else:
-                        extra = (1 - prev) - _flt
-                    arr = np.append(arr, np.zeros(shape=((_int - 1), )))
-                    arr = np.append(arr, [extra])
-                else:
-                    if prev + _flt > 1:
-                        extra = (prev + _flt) - 1
-                    else:
-                        extra = 1 - (prev + _flt)
-                    arr[-1] = 0
-                    arr = np.append(arr, np.zeros(shape=(_int - 1, )))
-                    arr = np.append(arr, [extra])'''
+                arr_mp = np.append(arr_mp, [mp[i:i+2]])
+                arr_io = np.append(arr_io, [io[i:i+2]])
+        elif i == l-1:
+            arr_mp = np.append(arr_mp, [mp[i]])
+            arr_io = np.append(arr_io, [io[i]])
+            
+    arr_mp = np.delete(arr_mp, 0)
+    arr_io = np.delete(arr_io, 0)
     
-    for i in range(len(mp)):
-        a = round(mp[i], 2)
-        b = round(mp[i+1], 2)
-        if a + b > 12:
-            to_sum = (12 - a) - b
-        elif a + b < 12:
-            to_minus = 12 - (a + b)
+    for i in range(arr_mp):
+        curr = arr_mp[i]
+        prev = arr_mp[i+1]
+        f, i = np.modf(curr)
+        f2, i2 = np.modf(prev)
+        if (1 - i) > i2:
+            x = (1 - i) - i2 # (1 - .46) - .46 > .54 > .46 > .08
+            curr = 
         
             
+    
+    # concat = np.zeros(shape=(1,))
+    # for _, a in enumerate(arr_mp):
+    #     f,i = np.modf(a)
+    #     if arr_io[_] == 1:
+    #         arr = np.ones(shape=(int(i), ), dtype=np.int16)
+    #         arr = np.append(arr, f)
+    #     else:
+    #         arr = np.zeros(shape=(int(i), ), dtype=np.int16)
+    #         arr = np.append(arr, -f)
+    #     concat = np.concatenate((concat, arr))
+    # concat = np.delete(concat, 0)
+    # print(concat)
         
-                   
-    print(player_name)    
-    print(arr)
-    print(len(arr))
-    # if not os.path.isdir(f'src/data/teamdashplayers/{team_id}'):
-    #     os.mkdir(f'src/data/teamdashplayers/{team_id}')
-    # if not os.path.isdir(f'src/data/teamdashplayers/{team_id}/{player_id}'):
-    #     os.mkdir(f'src/data/teamdashplayers/{team_id}/{player_id}')
-    # df = pd.DataFrame(arr)
-    # df.to_csv(f'src/data/teamdashplayers/{team_id}/{player_id}/{player_id}.csv', mode='a')
+
                 
         
     
@@ -207,57 +171,76 @@ def bref_scrape_chart(url:str):
     home_player = home_table.select('div.player')
     home_bar = home_table.select('div.player-plusminus')
 
-    away_length = len(away_player)
-    print('Creating Away Players timetable...')
-    for idx in range(0, away_length):
-        player_name = re.findall("(.*)\s\(", away_player[idx].text)[0]
-        player_info = get_player_info(player_name)
-        bars = away_bar[idx].select('div')
-        actual_width = int(table_width) - 1 - len(bars)        
-        status = []; minute = []; margin = []
-        for rows in bars:
-            time_width = int(re.findall("\:([0-9]*)\w",rows['style'])[0])
-            actual_minute = round(time_width / actual_width, 2)
-            actual_minute = round(48 * actual_minute, 2)
-            try:
-                if rows['class'][0] == 'minus' or rows['class'][0] == 'plus':
-                    status.append(1)
-                    margin.append(int(rows.text))
-            except:
-                status.append(0)
-                margin.append(0)
-            finally:
-                minute.append(actual_minute)
-        df = pd.DataFrame(data=[minute, margin, status])
-        df = df.T
-        df.columns = ['MinutesPlayed', 'ScoreMargin', 'Status']
-        df.to_csv(f'{filename}/{away_team}/{player_name}.csv')
-        calculate_minutes(df, player_info)
+    # away_length = len(away_player)
+    # print('Creating Away Players timetable...')
+    # for idx in range(0, away_length):
+    #     player_name = re.findall("(.*)\s\(", away_player[idx].text)[0]
+    #     player_info = get_player_info(player_name)
+    #     bars = away_bar[idx].select('div')
+    #     actual_width = int(table_width) - 1
+    #     status = []; minute = []; margin = []
+    #     for rows in bars:
+    #         time_width = int(re.findall("\:([0-9]*)\w",rows['style'])[0]) + 1
+    #         actual_minute = round(time_width / actual_width,2)
+    #         actual_minute = round(48 * actual_minute,2)
+    #         try:
+    #             if rows['class'][0] == 'minus' or rows['class'][0] == 'plus':
+    #                 status.append(1)
+    #                 margin.append(int(rows.text))
+    #         except:
+    #             status.append(0)
+    #             margin.append(0)
+    #         finally:
+    #             minute.append(actual_minute)
+    #     df = pd.DataFrame(data=[
+    #         minute, 
+    #         # margin, 
+    #         status
+    #         ])
+    #     df = df.T
+    #     df.columns = [
+    #         'MinutesPlayed', 
+    #         # 'ScoreMargin', 
+    #         'Status'
+    #         ]
+    #     df.to_csv(f'{filename}/{away_team}/{player_name}.csv')
+    #     calculate_minutes(df, player_info)
         
     home_length = len(home_player)
     print('Creating Home Players timetable...')
     for idx in range(0, home_length):
         player_name = re.findall("(.*)\s\(", home_player[idx].text)[0]
+        print(player_name)
         player_info = get_player_info(player_name)
         bars = home_bar[idx].select('div')
-        actual_width = int(table_width) - 1 - len(bars)        
-        status = []; minute = []; margin = []
-        for rows in bars:
-            time_width = int(re.findall("\:([0-9]*)\w",rows['style'])[0])
-            actual_minute = round(time_width / actual_width, 2)
-            actual_minute = round(48 * actual_minute, 2)
+        actual_width = int(table_width) - 1
+        status = np.zeros(shape=(len(bars),), dtype=np.int16)
+        minute = np.zeros(shape=(len(bars),), dtype=np.float64)
+        margin = np.zeros(shape=(len(bars),), dtype=np.int16)
+        for i, rows in enumerate(bars):
+            time_width = int(re.findall("\:([0-9]*)\w",rows['style'])[0]) + 1
+            actual_minute = time_width / actual_width
+            actual_minute = 48 * actual_minute
             try:
                 if rows['class'][0] == 'minus' or rows['class'][0] == 'plus':
-                    status.append(1)
-                    margin.append(int(rows.text))
+                    status[i] = 1
+                    margin[i] = int(rows.text)
             except:
-                status.append(0)
-                margin.append(0)
+                    status[i] = 0
+                    margin[i] = 0
             finally:
-                minute.append(actual_minute)
-        df = pd.DataFrame(data=[minute, margin, status])
+                minute[i] = actual_minute
+        df = pd.DataFrame(data=[
+            minute, 
+            # margin, 
+            status
+            ])
         df = df.T
-        df.columns = ['MinutesPlayed', 'ScoreMargin', 'Status']
+        df.columns = [
+            'MinutesPlayed', 
+            # 'ScoreMargin', 
+            'Status'
+            ]
         df.to_csv(f'{filename}/{home_team}/{player_name}.csv')
         calculate_minutes(df, player_info)
 
