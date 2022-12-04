@@ -6,6 +6,7 @@ import re
 import os
 import sys
 sys.path.append('.')
+import datetime
 from time import sleep
 from bs4 import BeautifulSoup
 
@@ -65,6 +66,9 @@ def calculate_minutes(data, playerinfo):
     arr_mp = np.ndarray(shape=(1,))
     arr_io = np.ndarray(shape=(1,))
 
+    print(mp)
+    print(np.sum(mp))
+
     # Integrate consecutive playing times
     l = len(mp)
     for i in range(0, l, 2):
@@ -82,33 +86,18 @@ def calculate_minutes(data, playerinfo):
     arr_mp = np.delete(arr_mp, 0)
     arr_io = np.delete(arr_io, 0)
     
-    for i in range(arr_mp):
-        curr = arr_mp[i]
-        prev = arr_mp[i+1]
-        f, i = np.modf(curr)
-        f2, i2 = np.modf(prev)
-        if (1 - i) > i2:
-            x = (1 - i) - i2 # (1 - .46) - .46 > .54 > .46 > .08
-            curr = 
-        
-            
+    print(arr_mp)
+    print(np.sum(arr_mp))
     
-    # concat = np.zeros(shape=(1,))
-    # for _, a in enumerate(arr_mp):
-    #     f,i = np.modf(a)
-    #     if arr_io[_] == 1:
-    #         arr = np.ones(shape=(int(i), ), dtype=np.int16)
-    #         arr = np.append(arr, f)
-    #     else:
-    #         arr = np.zeros(shape=(int(i), ), dtype=np.int16)
-    #         arr = np.append(arr, -f)
-    #     concat = np.concatenate((concat, arr))
-    # concat = np.delete(concat, 0)
-    # print(concat)
-        
-
-                
-        
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
 
 def bref_scrape_schedule(seasons:list=[2022]):
@@ -220,7 +209,7 @@ def bref_scrape_chart(url:str):
         for i, rows in enumerate(bars):
             time_width = int(re.findall("\:([0-9]*)\w",rows['style'])[0]) + 1
             actual_minute = time_width / actual_width
-            actual_minute = 48 * actual_minute
+            actual_minute = round(2880 * actual_minute, 1)
             try:
                 if rows['class'][0] == 'minus' or rows['class'][0] == 'plus':
                     status[i] = 1
