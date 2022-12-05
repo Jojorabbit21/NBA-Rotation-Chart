@@ -5,6 +5,7 @@ import requests
 import re
 import os
 import sys
+import math
 sys.path.append('.')
 import datetime
 from time import sleep
@@ -61,20 +62,17 @@ def calculate_minutes(data, playerinfo):
     player_name = playerinfo.loc[:, "DISPLAY_FIRST_LAST"].item()
     
     mp = data['MinutesPlayed'].to_numpy(dtype=np.float64)
-    io = data['Status'].to_numpy(dtype=np.int32)
-
+    io = data['Status'].to_numpy(dtype=np.int32)    
+    
     arr_mp = np.ndarray(shape=(1,))
     arr_io = np.ndarray(shape=(1,))
-
-    print(mp)
-    print(np.sum(mp))
 
     # Integrate consecutive playing times
     l = len(mp)
     for i in range(0, l, 2):
         if i < l-1:
             if io[i] == io[i+1]:
-                arr_mp = np.append(arr_mp, np.sum(mp[i:i+2], dtype=np.float64))
+                arr_mp = np.append(arr_mp, np.sum(mp[i:i+2]))
                 arr_io = np.append(arr_io, [io[i]])
             else:
                 arr_mp = np.append(arr_mp, [mp[i:i+2]])
@@ -84,16 +82,47 @@ def calculate_minutes(data, playerinfo):
             arr_io = np.append(arr_io, [io[i]])
             
     arr_mp = np.delete(arr_mp, 0)
-    arr_io = np.delete(arr_io, 0)
+    arr_io = np.delete(arr_io, 0)   
     
+    # Convert to stacked-timestamp
+    for _, i in enumerate(arr_mp):
+        if _ < len(arr_mp) - 1:
+            a = datetime.timedelta(seconds=round(i,0))
+            m = (a.seconds // 60) % 60
+            s = a.seconds - (m * 60)
+            arr_mp[_] = a.seconds
+    for _, i in enumerate(arr_mp):
+        if _ < len(arr_mp) - 1:
+            arr_mp[_ + 1] += i
+            
+    # Sanitize Extra/Short time 
+    if arr_mp[-1] > 2880:
+        extra = arr_mp[-1] - 2880
+        arr_mp[-1] = arr_mp[-1] - extra
+    elif arr_mp[-1] < 2880:
+        need = 2880 - arr_mp[-1]
+        arr_mp[-1] = arr_mp[-1] + need
+        
     print(arr_mp)
-    print(np.sum(arr_mp))
     
-    
-    
-    
-    
-    
+    min_arr = np.zeros(shape=(48,))
+    for _, i in enumerate(arr_mp):
+        if arr_io[_] == 1:
+            duration = datetime.timedelta(seconds=i)
+            duration_m = (duration.seconds // 60) % 60
+            duration_s = duration.seconds - (duration_m * 60)
+            if _ == 0:
+                start_m = 0
+            else:
+                start = datetime.timedelta(seconds=arr_mp[_-1])
+                start_m = (start.seconds // 60) % 60
+                start_s = start.seconds - (start_m * 60)
+                if start_s > 0:
+                    start_m += 1
+            for tick in range(duration_m):
+                if start_m + tick < 48:
+                    min_arr[start_m + tick] = 1
+    print(min_arr)
     
     
     
