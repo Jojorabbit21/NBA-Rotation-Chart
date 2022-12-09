@@ -13,6 +13,8 @@ from time import sleep
 from bs4 import BeautifulSoup
 from unidecode import unidecode
 from tqdm import tqdm
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 base_header = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
@@ -91,7 +93,7 @@ full_to_abbr = {
 }
 
 def open_db(dbname):
-    db_path = f'src/data/db/{dbname}.db'
+    db_path = f'src/data/db/{dbname}.sqlite3'
     conn = sqlite3.connect(db_path)
     return conn
 
@@ -259,7 +261,6 @@ def calculate_minutes(data, playerinfo, match_info:list):
         bs_arr.append(arr_io[_])
     return bs_arr
     
-    
 def bref_scrape_schedule(seasons:list=[2022]):
     base_url = 'https://www.basketball-reference.com/leagues/NBA_{}_games-{}.html' # ex) 2023 => 2022-23
     boxscore_url = []
@@ -423,6 +424,57 @@ def bref_scrape_chart(url:str, season:str):
     conn = open_db('boxscore')
     df.to_sql(filename, conn, if_exists='replace')
     
+def bref_scrape_pbp(url:str, season):
+    response = requests.get(url, headers=base_header)
+    html = response.text
+    soup = BeautifulSoup(html, 'lxml')
+    # url에서 날짜를 추출
+    date = url.split('/')[-1:][0]
+    date = re.findall("[0-9]", date)
+    date = "".join(date)
+    away = full_to_abbr[soup.select_one('#content > div.scorebox > div:nth-child(1) > div:nth-child(1) > strong > a').text]
+    home = full_to_abbr[soup.select_one('#content > div.scorebox > div:nth-child(2) > div:nth-child(1) > strong > a').text]
+    info_df = [date, season, away, home]
+    info_df = pd.DataFrame([info_df], columns=['Date', 'Season', 'Away', 'Home'])
+    # Drop multiindex
+    df = pd.read_html(html)[0]
+    df = df.loc[:, '1st Q']
+    df = df.loc[:, ['Time','Score']]
+    # Cut off overtime
+    try:
+        end_reg = df[df['Score'] == 'End of 4th quarter'].index.values[0]
+        df = df.iloc[:end_reg+1, :]
+    except:
+        pass
+    # Drop useless rows
+    debris = df[(df['Time'] == 'Time') | (df['Time'] == '2nd Q') | (df['Time'] == '3rd Q') | (df['Time'] == '4th Q')]
+    df = df.drop(labels=debris.index)
+    # Reset indices and cut dataframe into four quarters
+    df.reset_index(drop=True, inplace=True)
+    end_1 = df[df['Score'] == 'End of 1st quarter'].index.values[0]
+    end_2 = df[df['Score'] == 'End of 2nd quarter'].index.values[0]
+    end_3 = df[df['Score'] == 'End of 3rd quarter'].index.values[0]
+    indices = [1, end_1, end_2, end_3]
+    # Transform into minute matrix
+    min_arr = list(range(0, 48))
+    for i in range(0,4):
+        if i == 0:
+            df_slice = df.iloc[indices[i]:indices[i+1], :]
+        elif i < 3:
+            df_slice = df.iloc[indices[i]+2:indices[i+1], :]
+        else:
+            df_slice = df.iloc[indices[i]+2:-1, :]
+        for row in df_slice.itertuples():
+            time = int(row.Time.split(":")[0])
+            target = (((12 * i) + 12) - time) - 1
+            min_arr[target] = row.Score
+    data_df = pd.DataFrame([min_arr])
+    df = pd.concat([info_df, data_df], axis=1)
+    # Save it into database
+    conn = open_db('teamboxscore')
+    df.to_sql(away, con=conn, if_exists='append')
+    df.to_sql(home, con=conn, if_exists='append')
+    
 def remove_duplicate_matrix(file):
     df = pd.read_csv(file)
     df.drop_duplicates(subset='Date', keep='first', inplace=True)
@@ -446,6 +498,11 @@ def get_roaster(team, season):
     df = df[(df['Team'] == team) & (df['Season'] == season)]
     return df
 
+def load_player_matrix(playername):
+    conn = open_db('players')
+    df = pd.read_sql(f"SELECT * FROM '{playername}'", con=conn)
+    return df
+
 # ---------* Player Search Test
 
 # ---------* For test
@@ -453,7 +510,8 @@ def get_roaster(team, season):
 
 # ---------* Fetch data and reshape into time matrix
 season = '2022'
-bref_base = 'https://www.basketball-reference.com/boxscores/plus-minus/'
+bref_base = 'https://www.basketball-reference.com/boxscores/pbp/'
+# bref_base = 'https://www.basketball-reference.com/boxscores/plus-minus/'
 filepath = 'src/data/schedules/bref.com/'
 filelist = os.listdir(filepath)
 for file in tqdm(filelist):
@@ -463,8 +521,9 @@ for file in tqdm(filelist):
             boxscore_url = str(row.boxscore_url).split("/")[-1]
             url = bref_base + boxscore_url
             print(url)
-            bref_scrape_chart(url=url, season=season)
-            sleep(1.5)
+            # bref_scrape_chart(url=url, season=season)
+            bref_scrape_pbp(url, season=season)
+            sleep(2)
 
 # ---------* Remove duplicates
 # filepath = 'src/data/teamdashplayers'
@@ -495,3 +554,20 @@ for file in tqdm(filelist):
 # ---------* Get Roaster
 # d = get_roaster('BOS', 2021)
 # print(d)
+
+
+
+
+# ---------* Load Player Time Matrix
+# d = load_player_matrix('Trae Young')
+# name = d.loc[0, 'PlayerName']
+# d_t = d.loc[:, '0':'47']
+# d_m = d_t.mean()
+# d_m = pd.DataFrame(d_m).T
+# d_m.index = ['Mean']
+# d_t.index = d['Date']
+# df = pd.concat([d_t, d_m], axis=0)
+
+# fig, ax = plt.subplots(1, 1, figsize=(5, 20))
+# sns.heatmap(df, cmap='tab10', vmin=0, vmax=1)
+# plt.show()
