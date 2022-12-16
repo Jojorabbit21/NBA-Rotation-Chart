@@ -500,7 +500,7 @@ def get_roaster(team, season):
 
 def load_player_matrix(playername):
     conn = open_db('players')
-    df = pd.read_sql(f"SELECT * FROM '{playername}'", con=conn)
+    df = pd.read_sql(f'SELECT * FROM "{playername}"', con=conn)
     return df
 
 # ---------* Player Search Test
@@ -509,21 +509,21 @@ def load_player_matrix(playername):
 # bref_scrape_chart('https://www.basketball-reference.com/boxscores/plus-minus/202112010OKC.html', '2022')
 
 # ---------* Fetch data and reshape into time matrix
-season = '2022'
-bref_base = 'https://www.basketball-reference.com/boxscores/pbp/'
-# bref_base = 'https://www.basketball-reference.com/boxscores/plus-minus/'
-filepath = 'src/data/schedules/bref.com/'
-filelist = os.listdir(filepath)
-for file in tqdm(filelist):
-    df = pd.read_csv(filepath + file)
-    for row in df.itertuples():
-        if row.fetched == 0:
-            boxscore_url = str(row.boxscore_url).split("/")[-1]
-            url = bref_base + boxscore_url
-            print(url)
-            # bref_scrape_chart(url=url, season=season)
-            bref_scrape_pbp(url, season=season)
-            sleep(2)
+# season = '2022'
+# bref_base = 'https://www.basketball-reference.com/boxscores/pbp/'
+# # bref_base = 'https://www.basketball-reference.com/boxscores/plus-minus/'
+# filepath = 'src/data/schedules/bref.com/'
+# filelist = os.listdir(filepath)
+# for file in tqdm(filelist):
+#     df = pd.read_csv(filepath + file)
+#     for row in df.itertuples():
+#         if row.fetched == 0:
+#             boxscore_url = str(row.boxscore_url).split("/")[-1]
+#             url = bref_base + boxscore_url
+#             print(url)
+#             # bref_scrape_chart(url=url, season=season)
+#             bref_scrape_pbp(url, season=season)
+#             sleep(2)
 
 # ---------* Remove duplicates
 # filepath = 'src/data/teamdashplayers'
@@ -559,15 +559,24 @@ for file in tqdm(filelist):
 
 
 # ---------* Load Player Time Matrix
-# d = load_player_matrix('Trae Young')
-# name = d.loc[0, 'PlayerName']
-# d_t = d.loc[:, '0':'47']
-# d_m = d_t.mean()
-# d_m = pd.DataFrame(d_m).T
-# d_m.index = ['Mean']
-# d_t.index = d['Date']
-# df = pd.concat([d_t, d_m], axis=0)
-
-# fig, ax = plt.subplots(1, 1, figsize=(5, 20))
-# sns.heatmap(df, cmap='tab10', vmin=0, vmax=1)
-# plt.show()
+team = 'ATL'
+r = get_roaster(team, 2021)
+r = r.iloc[:, 3:].T
+r = r.dropna(axis=0)
+team_df = pd.DataFrame()
+for row in r.itertuples():
+    player = row._1
+    print(player)
+    d = load_player_matrix(player)
+    name = d.loc[0, 'PlayerName']
+    d_t = d.loc[:, '0':'47']
+    d_m = d_t.mean()
+    d_m = pd.DataFrame(d_m).T
+    d_m.index = ['Mean']
+    d_t.index = d['Date']
+    d_a = d_m
+    d_a.index = [player]
+    team_df = pd.concat([team_df, d_a], axis=0)
+    df = pd.concat([d_t, d_m], axis=0)
+    df.to_csv(f'test-data/{player}.csv')
+team_df.to_csv(f'test-data/{team}.csv')

@@ -34,6 +34,11 @@ headers={
     'x-nba-stats-token': 'true'
 }
 
+url = "http://stats.nba.com/stats/locations_getmoments/?eventid=308&gameid;=0041400235"
+response = requests.get(url, headers=headers)
+j = response.json()
+print(j)
+
 def get_season_schedule(seasons:list=[2021]):
     for season in seasons:
         schedule = f'https://data.nba.net/prod/v1/{season}/schedule.json'
@@ -127,5 +132,5 @@ def get_boxscores(seasons:list=[2021]):
 # Actual Process  
 # get_boxscores()
 
-df = BoxScoreTraditionalV2(game_id='12100001', headers=headers).get_normalized_dict()
-print(df)
+# df = BoxScoreTraditionalV2(game_id='12100001', headers=headers).get_normalized_dict()
+# print(df)
