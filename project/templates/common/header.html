@@ -1,0 +1,29 @@
+{% load static %}
+{% block content %}
+<header id="header">
+  <div class="header-inner">
+    <div class="logo-container" onclick="location.href='{% url 'main:index' %}'" style="cursor:pointer;">
+      <img id="logo" src="{% static 'imgs/nba_logo.png' %}" alt="NBA Rotation Chart">
+      <a class="logotext">ROTATION CHART</a>
+    </div>
+    <div class="menu-container">
+      <div class="menu-button" onclick="location.href='{% url 'main:index' %}'">
+        <a class="menu-item">Teams</a> 
+      </div>
+      <div class="menu-button" onclick="location.href='{% url 'main:index' %}'">
+        <a class="menu-item">Players</a>
+      </div> 
+      <div class="menu-button" onclick="location.href='{% url 'main:index' %}'">
+        <a class="menu-item">About</a> 
+      </div>
+    </div>
+    <!--
+    <div class="search-container">
+      <div class="search-label-container">
+        <span class="search-label">Search</span>
+      </div>
+      <input class="search-field" type="text" placeholder="Search what you want.">
+    </div>-->
+  </div>
+</header>
+{% endblock %}

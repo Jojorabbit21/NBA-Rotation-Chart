@@ -1,0 +1,28 @@
+{% extends 'common/base.html' %}
+{% load static %}
+{% block content %}
+<div class="main-container">
+  <div class="conf-container econf-container">
+    <div class="conf-title-container econf-title">
+      <span class="conf-title" id="econf-title">Eastern<br/>Conference</span>
+    </div>
+    {% for team in eastern.itertuples %}
+    <div class="team-card" onclick="location.href='{% url 'main:team' team.abbreviation 2021 %}'">
+      <img class="logos" src="{% get_static_prefix %}imgs/logos/{{ team.abbreviation }}.svg">
+      <span class="teamnames">{{team.teamName}}</span>
+    </div>
+    {%endfor%}
+  </div>
+  <div class="conf-container wconf-container">
+    <div class="conf-title-container  wconf-title">
+      <span class="conf-title" id="wconf-title">Western<br/>Conference</span>
+    </div>
+    {% for team in western.itertuples %}
+    <div class="team-card" onclick="location.href='{% url 'main:team' team.abbreviation 2021 %}'">
+      <img class="logos" src="{% get_static_prefix %}imgs/logos/{{ team.abbreviation }}.svg">
+      <span class="teamnames">{{team.teamName}}</span>
+    </div>
+    {%endfor%}
+  </div>
+</div>
+{% endblock %}

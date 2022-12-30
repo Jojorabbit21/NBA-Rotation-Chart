@@ -1,0 +1,418 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600;1,700;1,800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
+
+:root {
+  /* Color Hex Codes */
+  --atl-pri: #C8102E;
+  --atl-sec: #FDB927;
+  --bos-pri: #007A33;
+  --bos-sec: #BA9653;
+  --bkn-pri: #000000;
+  --bkn-sec: #FFFFFF;
+  --cha-pri: #1D1160;
+  --cha-sec: #00788C;
+  --chi-pri: #CE1141;
+  --chi-sec: #000000;
+  --cle-pri: #860038;
+  --cle-sec: #FDBB30;
+  --dal-pri: #00538C;
+  --dal-sec: #002B5E;
+  --den-pri: #0E2240;
+  --den-sec: #FEC524;
+  --det-pri: #C8102E;
+  --det-sec: #1D42BA;
+  --gsw-pri: #1D428A;
+  --gsw-sec: #FFC72C;
+  --hou-pri: #CE1141;
+  --hou-sec: #000000;
+  --ind-pri: #002D62;
+  --ind-sec: #FDBB30;
+  --lac-pri: #C8102E;
+  --lac-sec: #1D428A;
+  --lal-pri: #552583;
+  --lal-sec: #FDB927;
+  --mem-pri: #5D76A9;
+  --mem-sec: #12173F;
+  --mia-pri: #98002E;
+  --mia-sec: #F9A01B;
+  --mil-pri: #00471B;
+  --mil-sec: #EEE1C6;
+  --min-pri: #0C2340;
+  --min-sec: #236192;
+  --nop-pri: #0C2340;
+  --nop-sec: #C8102E;
+  --nyk-pri: #006BB6;
+  --nyk-sec: #F58426;
+  --okc-pri: #007AC1;
+  --okc-sec: #EF3B24;
+  --orl-pri: #0077C0;
+  --orl-sec: #C4CED4;
+  --phi-pri: #006BB6;
+  --phi-sec: #ED174C;
+  --pho-pri: #1D1160;
+  --pho-sec: #E56020;
+  --por-pri: #E03A3E;
+  --por-sec: #000000;
+  --sac-pri: #5A2D81;
+  --sac-sec: #63727A;
+  --sas-pri: #C4CED4;
+  --sas-sec: #000000;
+  --tor-pri: #CE1141;
+  --tor-sec: #000000;
+  --uta-pri: #002B5C;
+  --uta-sec: #F9A01B;
+  --was-pri: #002B5C;
+  --was-sec: #E31837;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media screen and (min-width: 1440px) {
+  :root {
+    font-family: 'Roboto', sans-serif;
+    font-size: 14px;
+    --header-height: 70px;
+    --container-width: 1100px;
+    --container-side-padding: calc((1920 - var(--container-width)) / 2);
+  }
+
+  body {
+    margin: 0;
+    width: 100vw;
+    height: auto;
+  }
+
+  main {
+    margin-top: var(--header-height);
+    width: 100%;
+    height: auto;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  /* Header */
+  #header {
+    top: 0;
+    width: 100vw;
+    height: var(--header-height);
+    background-color: rgb(8, 6, 32);
+    color: white;
+    padding: 10px 20px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    position: absolute;
+  }
+  .header-inner {
+    width: var(--container-width);  
+    display: flex;
+    flex-direction: row;
+    justify-content: left;
+    align-items: center;
+  }
+  .logo-container {
+    height: 100%;
+    width: auto;
+    display: flex;
+    flex-direction: row;
+    justify-content: left;
+    align-items: center;
+  }
+  #logo {
+    height: 65%;
+    width: auto;
+  }
+  .logotext {
+    height: auto;
+    margin-left: 10px;
+    font-family: 'Bebas Neue', cursive;
+    line-height: 0%;
+    font-size: 2.6rem;
+  }
+  .menu-container {
+    margin-left: 20px;
+    height: 100%;
+    width: fit-content;
+    display: flex;
+    flex-direction: row;
+    justify-content: left;
+  }
+  .menu-button {
+    height: 100%;
+    width: 70px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .menu-button:hover .menu-item {
+    color: orange;
+  }
+  .menu-item {
+    font-weight: 500;
+    font-size: 1rem;
+    color: white;
+    text-decoration: none !important;
+  }
+  .menu-item:visited {
+    color: white;
+  }
+  .search-container {
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: left;
+    align-items: center;
+    margin-left: 20px;
+  }
+  .search-label-container {
+    margin-right: 10px;
+  }
+  .search-label {
+    font-weight: 500;
+  }
+  .search-field {
+    color: black;
+    height: 50%;
+    padding: 4px 12px;
+    background-color: rgb(167, 167, 167);
+    border: none;
+    border-radius: 3px;
+  }
+
+  /* Main Container */
+  .main-container {
+    width: var(--container-width);
+    min-height: 100vh;
+    height: fit-content;
+  }
+  .conf-container {
+    width: 50%;
+    height: fit-content;
+    float: left;
+    padding: 20px 10px;
+    box-sizing: border-box;
+  }
+  .econf-container {
+    border-left: 1px solid gray;
+    border-right: 1px solid gray;
+  }
+  .wconf-container {
+    border-right: 1px solid gray;
+  }
+  .conf-title-container {
+    font-family: 'Bebas Neue', cursive;
+    color: white;
+    font-size: 3rem;
+    line-height: 3rem;
+    letter-spacing: -0.7px;
+    margin-bottom: 20px;
+  }
+  .econf-title {
+    color: dodgerblue;
+  }
+  .wconf-title {
+    color: crimson;
+  }
+
+  /* Team Cards */
+  .team-card {
+    width: 100%;
+    height: 50px;
+    opacity: 0.3;
+    cursor: pointer;
+    margin: 10px 0;
+  }
+  .team-card:hover {
+    opacity: 1;
+  }
+  img.logos {
+    height: 80%;
+    width: auto;
+  }
+  span.teamnames {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 4rem;
+    color: black;
+    line-height: -50%;
+  }
+
+  /* Team Page - Info */
+  .info-container {
+    width: 100%;
+    height: 240px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .info-inner {
+    height: 100%;
+    width: var(--container-width);
+    margin: 0 var(--container-side-padding);
+    display: flex;
+    flex-direction: row;
+    justify-content: left;
+    align-items: center;
+  }
+  .team-logo-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  .team-logo {
+    height: 80%;
+    width: auto;
+  }
+  .team-name-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  .team-name {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 7rem;
+  }
+  #ATL {
+    background-color: var(--atl-pri);
+    color: white;
+  }
+  #BOS {
+    background-color: var(--bos-pri);
+    color: white;
+  }
+  #BKN {
+    background-color: var(--bkn-pri);
+    color: white;
+  }
+  #CLE {
+    background-color: var(--cle-pri);
+    color: white;
+  }
+  #CHA {
+    background-color: var(--cha-pri);
+    color: white;
+  }
+  #CHI {
+    background-color: var(--chi-pri);
+    color: white;
+  }
+  #DAL {
+    background-color: var(--dal-pri);
+    color: white;
+  }
+  #DET {
+    background-color: var(--det-pri);
+    color: white;
+  }
+  #DEN {
+    background-color: var(--den-pri);
+    color: white;
+  }
+  #GSW {
+    background-color: var(--gsw-pri);
+    color: white;
+  }
+  #HOU {
+    background-color: var(--hou-pri);
+    color: white;
+  }
+  #IND {
+    background-color: var(--ind-pri);
+    color: white;
+  }
+  #LAC {
+    background-color: var(--lac-pri);
+    color: white;
+  }
+  #LAL {
+    background-color: var(--lal-pri);
+    color: white;
+  }
+  #MEM {
+    background-color: var(--mem-pri);
+    color: white;
+  }
+  #MIN {
+    background-color: var(--min-pri);
+    color: white;
+  }
+  #MIL {
+    background-color: var(--mil-pri);
+    color: white;
+  }
+  #MIA {
+    background-color: var(--mia-pri);
+    color: white;
+  }
+  #NOP {
+    background-color: var(--nop-pri);
+    color: white;
+  }
+  #NYK {
+    background-color: var(--nyk-pri);
+    color: white;
+  }
+  #OKC {
+    background-color: var(--okc-pri);
+    color: white;
+  }
+  #ORL {
+    background-color: var(--orl-pri);
+    color: white;
+  }
+  #PHI {
+    background-color: var(--phi-pri);
+    color: white;
+  }
+  #PHO {
+    background-color: var(--pho-pri);
+    color: white;
+  }
+  #POR {
+    background-color: var(--por-pri);
+    color: white;
+  }
+  #SAC {
+    background-color: var(--sac-pri);
+    color: white;
+  }
+  #SAS {
+    background-color: var(--sas-pri);
+    color: white;
+  }
+  #TOR {
+    background-color: var(--tor-pri);
+    color: white;
+  }
+  #UTA {
+    background-color: var(--uta-pri);
+    color: white;
+  }
+  #WAS {
+    background-color: var(--was-pri);
+    color: white;
+  }
+
+  /* Footer */
+  #footer {
+    height: 60px;
+    color: white;
+    background-color: black;
+  } 
+}
