@@ -428,6 +428,7 @@ def bref_scrape_pbp(url:str, season):
     response = requests.get(url, headers=base_header)
     html = response.text
     soup = BeautifulSoup(html, 'lxml')
+    
     # url에서 날짜를 추출
     date = url.split('/')[-1:][0]
     date = re.findall("[0-9]", date)
@@ -436,44 +437,58 @@ def bref_scrape_pbp(url:str, season):
     home = full_to_abbr[soup.select_one('#content > div.scorebox > div:nth-child(2) > div:nth-child(1) > strong > a').text]
     info_df = [date, season, away, home]
     info_df = pd.DataFrame([info_df], columns=['Date', 'Season', 'Away', 'Home'])
+    
     # Drop multiindex
     df = pd.read_html(html)[0]
     df = df.loc[:, '1st Q']
     df = df.loc[:, ['Time','Score']]
+    
     # Cut off overtime
     try:
         end_reg = df[df['Score'] == 'End of 4th quarter'].index.values[0]
         df = df.iloc[:end_reg+1, :]
     except:
         pass
+    
+    # Clear Jumpballs and duplicates
+    debris = df[df['Score'].str.contains('Jump ball')]
+    df = df.drop(labels=debris.index)
+    
     # Drop useless rows
     debris = df[(df['Time'] == 'Time') | (df['Time'] == '2nd Q') | (df['Time'] == '3rd Q') | (df['Time'] == '4th Q')]
     df = df.drop(labels=debris.index)
+    
     # Reset indices and cut dataframe into four quarters
     df.reset_index(drop=True, inplace=True)
     end_1 = df[df['Score'] == 'End of 1st quarter'].index.values[0]
     end_2 = df[df['Score'] == 'End of 2nd quarter'].index.values[0]
     end_3 = df[df['Score'] == 'End of 3rd quarter'].index.values[0]
-    indices = [1, end_1, end_2, end_3]
+    end_4 = df[df['Score'] == 'End of 4th quarter'].index.values[0]
+    indices = [1, end_1, end_2, end_3, end_4]
+    
+    df_1 = df.iloc[1:end_1, :]
+    df_2 = df.iloc[end_1+1:end_2, :]
+    df_3 = df.iloc[end_2+1:end_3, :]
+    df_4 = df.iloc[end_3+1:end_4, :]
+    
     # Transform into minute matrix
     min_arr = list(range(0, 48))
-    for i in range(0,4):
-        if i == 0:
-            df_slice = df.iloc[indices[i]:indices[i+1], :]
-        elif i < 3:
-            df_slice = df.iloc[indices[i]+2:indices[i+1], :]
-        else:
-            df_slice = df.iloc[indices[i]+2:-1, :]
-        for row in df_slice.itertuples():
+    for _, li in enumerate([df_1, df_2, df_3, df_4]):
+        debris = li[(li['Time'] == '0:00.0') | (li['Score'].str.contains('of')) | (li['Score'].str.contains('Q'))]
+        li = li.drop(labels=debris.index)
+        li = li.drop_duplicates(keep="last", ignore_index=True)
+        for row in li.itertuples():
             time = int(row.Time.split(":")[0])
-            target = (((12 * i) + 12) - time) - 1
+            target = (((12 * _) + 12) - time) - 1
             min_arr[target] = row.Score
     data_df = pd.DataFrame([min_arr])
     df = pd.concat([info_df, data_df], axis=1)
+    
     # Save it into database
     conn = open_db('teamboxscore')
     df.to_sql(away, con=conn, if_exists='append')
     df.to_sql(home, con=conn, if_exists='append')
+    df.to_csv(f"src/data/pbp/teamboxscore.csv", mode="a")
     
 def remove_duplicate_matrix(file):
     df = pd.read_csv(file)
@@ -555,28 +570,3 @@ def load_player_matrix(playername):
 # d = get_roaster('BOS', 2021)
 # print(d)
 
-
-
-
-# ---------* Load Player Time Matrix
-team = 'ATL'
-r = get_roaster(team, 2021)
-r = r.iloc[:, 3:].T
-r = r.dropna(axis=0)
-team_df = pd.DataFrame()
-for row in r.itertuples():
-    player = row._1
-    print(player)
-    d = load_player_matrix(player)
-    name = d.loc[0, 'PlayerName']
-    d_t = d.loc[:, '0':'47']
-    d_m = d_t.mean()
-    d_m = pd.DataFrame(d_m).T
-    d_m.index = ['Mean']
-    d_t.index = d['Date']
-    d_a = d_m
-    d_a.index = [player]
-    team_df = pd.concat([team_df, d_a], axis=0)
-    df = pd.concat([d_t, d_m], axis=0)
-    df.to_csv(f'test-data/{player}.csv')
-team_df.to_csv(f'test-data/{team}.csv')
