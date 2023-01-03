@@ -422,7 +422,7 @@ def bref_scrape_chart(url:str, season:str):
     data_df = pd.DataFrame(data_arr)
     df = pd.concat([info_df, data_df], axis=1)
     conn = open_db('boxscore')
-    df.to_sql(filename, conn, if_exists='replace')
+    df.to_sql(filename, conn, if_exists='append')
     
 def bref_scrape_pbp(url:str, season):
     response = requests.get(url, headers=base_header)
@@ -521,24 +521,24 @@ def load_player_matrix(playername):
 # ---------* Player Search Test
 
 # ---------* For test
-# bref_scrape_chart('https://www.basketball-reference.com/boxscores/plus-minus/202112010OKC.html', '2022')
+# bref_scrape_chart('https://www.basketball-reference.com/boxscores/plus-minus/202202040UTA.html', '2022')
 
 # ---------* Fetch data and reshape into time matrix
-# season = '2022'
+season = '2022'
 # bref_base = 'https://www.basketball-reference.com/boxscores/pbp/'
-# # bref_base = 'https://www.basketball-reference.com/boxscores/plus-minus/'
-# filepath = 'src/data/schedules/bref.com/'
+bref_base = 'https://www.basketball-reference.com/boxscores/plus-minus/'
+filepath = 'src/data/schedules/bref.com/'
 # filelist = os.listdir(filepath)
 # for file in tqdm(filelist):
-#     df = pd.read_csv(filepath + file)
-#     for row in df.itertuples():
-#         if row.fetched == 0:
-#             boxscore_url = str(row.boxscore_url).split("/")[-1]
-#             url = bref_base + boxscore_url
-#             print(url)
-#             # bref_scrape_chart(url=url, season=season)
-#             bref_scrape_pbp(url, season=season)
-#             sleep(2)
+df = pd.read_csv("src/data/schedules/bref.com/bref_202122.csv")
+for row in df.itertuples():
+    if row.fetched == 0:
+        boxscore_url = str(row.boxscore_url).split("/")[-1]
+        url = bref_base + boxscore_url
+        print(url)
+        bref_scrape_chart(url=url, season=season)
+        # bref_scrape_pbp(url, season=season)
+        sleep(2)
 
 # ---------* Remove duplicates
 # filepath = 'src/data/teamdashplayers'
