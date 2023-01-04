@@ -252,6 +252,7 @@ def calculate_minutes(data, playerinfo, match_info:list):
     
     # DB에 저장
     conn = open_db('players')
+    print(m_info)
     df.to_sql(player_name, con=conn, if_exists='append')
     
     # Return
@@ -331,7 +332,6 @@ def bref_scrape_chart(url:str, season:str):
     for idx in range(0, away_length):
         arr = []
         player_name = re.findall("(.*)\s\(", away_player[idx].text)[0]
-        print(player_name)
         player_info = get_player_info(player_name, season)
         bars = away_bar[idx].select('div')
         # 테이블 border-left 가 1px로 설정되어 있어 1을 빼준다.
@@ -379,7 +379,6 @@ def bref_scrape_chart(url:str, season:str):
     for idx in range(0, home_length):
         arr = []
         player_name = re.findall("(.*)\s\(", home_player[idx].text)[0]
-        print(player_name)
         player_info = get_player_info(player_name, season)
         bars = home_bar[idx].select('div')
         actual_width = int(table_width) - 1
@@ -463,13 +462,18 @@ def bref_scrape_pbp(url:str, season):
     end_1 = df[df['Score'] == 'End of 1st quarter'].index.values[0]
     end_2 = df[df['Score'] == 'End of 2nd quarter'].index.values[0]
     end_3 = df[df['Score'] == 'End of 3rd quarter'].index.values[0]
-    end_4 = df[df['Score'] == 'End of 4th quarter'].index.values[0]
-    indices = [1, end_1, end_2, end_3, end_4]
+    try:
+        end_4 = df[df['Score'] == 'End of 4th quarter'].index.values[0]
+    except:
+        end_4 = None
     
     df_1 = df.iloc[1:end_1, :]
     df_2 = df.iloc[end_1+1:end_2, :]
     df_3 = df.iloc[end_2+1:end_3, :]
-    df_4 = df.iloc[end_3+1:end_4, :]
+    if end_4 is not None:
+        df_4 = df.iloc[end_3+1:end_4, :]
+    else:
+        df_4 = df.iloc[end_3+1:, :]
     
     # Transform into minute matrix
     min_arr = list(range(0, 48))
@@ -488,7 +492,7 @@ def bref_scrape_pbp(url:str, season):
     conn = open_db('teamboxscore')
     df.to_sql(away, con=conn, if_exists='append')
     df.to_sql(home, con=conn, if_exists='append')
-    df.to_csv(f"src/data/pbp/teamboxscore.csv", mode="a")
+    df.to_csv(f"src/data/pbp/teamboxscore.csv", mode="a", header=False)
     
 def remove_duplicate_matrix(file):
     df = pd.read_csv(file)
@@ -525,8 +529,8 @@ def load_player_matrix(playername):
 
 # ---------* Fetch data and reshape into time matrix
 season = '2022'
-# bref_base = 'https://www.basketball-reference.com/boxscores/pbp/'
-bref_base = 'https://www.basketball-reference.com/boxscores/plus-minus/'
+bref_base = 'https://www.basketball-reference.com/boxscores/pbp/'
+# bref_base = 'https://www.basketball-reference.com/boxscores/plus-minus/'
 filepath = 'src/data/schedules/bref.com/'
 # filelist = os.listdir(filepath)
 # for file in tqdm(filelist):
@@ -536,8 +540,8 @@ for row in df.itertuples():
         boxscore_url = str(row.boxscore_url).split("/")[-1]
         url = bref_base + boxscore_url
         print(url)
-        bref_scrape_chart(url=url, season=season)
-        # bref_scrape_pbp(url, season=season)
+        # bref_scrape_chart(url=url, season=season)
+        bref_scrape_pbp(url, season=season)
         sleep(2)
 
 # ---------* Remove duplicates
