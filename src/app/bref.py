@@ -15,6 +15,8 @@ from unidecode import unidecode
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pymysql
+from sqlalchemy import create_engine
 
 base_header = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
@@ -95,6 +97,19 @@ full_to_abbr = {
 def open_db(dbname):
     db_path = f'src/data/db/{dbname}.sqlite3'
     conn = sqlite3.connect(db_path)
+    return conn
+
+def open_mysql(dbname):
+    host = 'localhost'
+    port = 3306
+    user = 'root'
+    password = '1234'
+    conn = pymysql.connect(
+        host = host,
+        port = port,
+        user = user,
+        passwd = password
+    )
     return conn
 
 def load_player_list():
@@ -252,8 +267,7 @@ def calculate_minutes(data, playerinfo, match_info:list):
     
     # DB에 저장
     conn = open_db('players')
-    print(m_info)
-    df.to_sql(player_name, con=conn, if_exists='append')
+    df.to_sql('players', con=conn, if_exists='append')
     
     # Return
     bs_arr = []
@@ -489,7 +503,8 @@ def bref_scrape_pbp(url:str, season):
     df = pd.concat([info_df, data_df], axis=1)
     
     # Save it into database
-    conn = open_db('teamboxscore')
+    # conn = open_db('teamboxscore')
+    conn = open_mysql('teamboxscore')
     df.to_sql(away, con=conn, if_exists='append')
     df.to_sql(home, con=conn, if_exists='append')
     df.to_csv(f"src/data/pbp/teamboxscore.csv", mode="a", header=False)
@@ -522,27 +537,27 @@ def load_player_matrix(playername):
     df = pd.read_sql(f'SELECT * FROM "{playername}"', con=conn)
     return df
 
-# ---------* Player Search Test
+
 
 # ---------* For test
 # bref_scrape_chart('https://www.basketball-reference.com/boxscores/plus-minus/202202040UTA.html', '2022')
 
 # ---------* Fetch data and reshape into time matrix
-season = '2022'
-bref_base = 'https://www.basketball-reference.com/boxscores/pbp/'
+# season = '2022'
+# # bref_base = 'https://www.basketball-reference.com/boxscores/pbp/'
 # bref_base = 'https://www.basketball-reference.com/boxscores/plus-minus/'
-filepath = 'src/data/schedules/bref.com/'
-# filelist = os.listdir(filepath)
-# for file in tqdm(filelist):
-df = pd.read_csv("src/data/schedules/bref.com/bref_202122.csv")
-for row in df.itertuples():
-    if row.fetched == 0:
-        boxscore_url = str(row.boxscore_url).split("/")[-1]
-        url = bref_base + boxscore_url
-        print(url)
-        # bref_scrape_chart(url=url, season=season)
-        bref_scrape_pbp(url, season=season)
-        sleep(2)
+# filepath = 'src/data/schedules/bref.com/'
+# # filelist = os.listdir(filepath)
+# # for file in tqdm(filelist):
+# df = pd.read_csv("src/data/schedules/bref.com/bref_202122.csv")
+# for row in df.itertuples():
+#     if row.fetched == 0:
+#         boxscore_url = str(row.boxscore_url).split("/")[-1]
+#         url = bref_base + boxscore_url
+#         print(url)
+#         bref_scrape_chart(url=url, season=season)
+#         # bref_scrape_pbp(url, season=season)
+#         sleep(2)
 
 # ---------* Remove duplicates
 # filepath = 'src/data/teamdashplayers'
@@ -574,3 +589,18 @@ for row in df.itertuples():
 # d = get_roaster('BOS', 2021)
 # print(d)
 
+conn = open_db('players')
+cur = conn.cursor()
+
+TABLE_PARAM = "{TABLE_PARAM}"
+DROP_TABLE_SQL = f'DROP TABLE `{TABLE_PARAM}`;'
+GET_TABLES_SQL = f"SELECT name FROM sqlite_schema WHERE type='table';"
+
+cur.execute(GET_TABLES_SQL)
+tables = cur.fetchall()
+
+for row in tables:
+    sql = DROP_TABLE_SQL.replace(TABLE_PARAM, row[0])
+    print(sql)
+    cur.execute(sql)
+cur.close()
