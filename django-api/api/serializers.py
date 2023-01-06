@@ -1,6 +1,7 @@
 from rest_framework import serializers
+from .models import PlayerIndex
 
-class ApiSerializer(serializers.ModelSerializer):
+class PlayerSerializer(serializers.ModelSerializer):
     class Meta:
-        model = None
-        fields = None
+        model = PlayerIndex
+        fields = ('index', 'playername', 'date', 'team', 'opp',)

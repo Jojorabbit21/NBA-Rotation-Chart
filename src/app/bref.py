@@ -97,19 +97,6 @@ def open_db(dbname):
     conn = sqlite3.connect(db_path)
     return conn
 
-def open_mysql(dbname):
-    host = 'localhost'
-    port = 3306
-    user = 'root'
-    password = '1234'
-    conn = pymysql.connect(
-        host = host,
-        port = port,
-        user = user,
-        passwd = password
-    )
-    return conn
-
 def load_player_list():
     cur = open_db('static')
     df = pd.read_sql('SELECT * FROM players_bref', cur)
@@ -261,11 +248,16 @@ def calculate_minutes(data, playerinfo, match_info:list):
     m_info = [player_name, date, team, against]
     m_df = pd.DataFrame([m_info], columns=['PlayerName', 'Date', 'Team', 'Opp'])
     df = pd.DataFrame([min_arr])
+    columns = []
+    for i in range(0, 48):
+        columns.append(f'min_{i}')
+    df.columns = columns
     df = pd.concat([m_df, df], axis=1)
     
     # DB에 저장
     conn = open_db('players')
-    df.to_sql('players', con=conn, if_exists='append')
+    df.to_sql('players', con=conn, if_exists='append', index=False)
+    conn.close()
     
     # Return
     bs_arr = []
@@ -434,6 +426,7 @@ def bref_scrape_chart(url:str, season:str):
     df = pd.concat([info_df, data_df], axis=1)
     conn = open_db('boxscore')
     df.to_sql(filename, conn, if_exists='append')
+    conn.close()
     
 def bref_scrape_pbp(url:str, season):
     response = requests.get(url, headers=base_header)
@@ -446,6 +439,9 @@ def bref_scrape_pbp(url:str, season):
     date = "".join(date)
     away = full_to_abbr[soup.select_one('#content > div.scorebox > div:nth-child(1) > div:nth-child(1) > strong > a').text]
     home = full_to_abbr[soup.select_one('#content > div.scorebox > div:nth-child(2) > div:nth-child(1) > strong > a').text]
+    away_score = soup.select_one('#content > div.scorebox > div:nth-child(1) > div.scores > div').text
+    home_score = soup.select_one('#content > div.scorebox > div:nth-child(2) > div.scores > div').text
+    total_score = f'{away_score}-{home_score}'
     info_df = [date, season, away, home]
     info_df = pd.DataFrame([info_df], columns=['Date', 'Season', 'Away', 'Home'])
     
@@ -488,7 +484,7 @@ def bref_scrape_pbp(url:str, season):
         df_4 = df.iloc[end_3+1:, :]
     
     # Transform into minute matrix
-    min_arr = list(range(0, 48))
+    min_arr = list(range(0, 49))
     for _, li in enumerate([df_1, df_2, df_3, df_4]):
         debris = li[(li['Time'] == '0:00.0') | (li['Score'].str.contains('of')) | (li['Score'].str.contains('Q'))]
         li = li.drop(labels=debris.index)
@@ -497,15 +493,17 @@ def bref_scrape_pbp(url:str, season):
             time = int(row.Time.split(":")[0])
             target = (((12 * _) + 12) - time) - 1
             min_arr[target] = row.Score
+    min_arr[48] = total_score
     data_df = pd.DataFrame([min_arr])
     df = pd.concat([info_df, data_df], axis=1)
+    df.rename(columns={48: 'Final'}, inplace=True)
     
     # Save it into database
-    # conn = open_db('teamboxscore')
-    conn = open_mysql('teamboxscore')
-    df.to_sql(away, con=conn, if_exists='append')
-    df.to_sql(home, con=conn, if_exists='append')
+    conn = open_db('teamboxscore')
+    df.to_sql('teamboxscore', con=conn, if_exists='append')
+    df.to_sql('teamboxscore', con=conn, if_exists='append')
     df.to_csv(f"src/data/pbp/teamboxscore.csv", mode="a", header=False)
+    conn.close()
     
 def remove_duplicate_matrix(file):
     df = pd.read_csv(file)
@@ -541,21 +539,21 @@ def load_player_matrix(playername):
 # bref_scrape_chart('https://www.basketball-reference.com/boxscores/plus-minus/202202040UTA.html', '2022')
 
 # ---------* Fetch data and reshape into time matrix
-season = '2022'
-# bref_base = 'https://www.basketball-reference.com/boxscores/pbp/'
-bref_base = 'https://www.basketball-reference.com/boxscores/plus-minus/'
-filepath = 'src/data/schedules/bref.com/'
-# filelist = os.listdir(filepath)
-# for file in tqdm(filelist):
-df = pd.read_csv("src/data/schedules/bref.com/bref_202122.csv")
-for row in df.itertuples():
-    if row.fetched == 0:
-        boxscore_url = str(row.boxscore_url).split("/")[-1]
-        url = bref_base + boxscore_url
-        print(url)
-        bref_scrape_chart(url=url, season=season)
-        # bref_scrape_pbp(url, season=season)
-        sleep(2)
+# season = '2022'
+# # bref_base = 'https://www.basketball-reference.com/boxscores/pbp/'
+# bref_base = 'https://www.basketball-reference.com/boxscores/plus-minus/'
+# filepath = 'src/data/schedules/bref.com/'
+# # filelist = os.listdir(filepath)
+# # for file in tqdm(filelist):
+# df = pd.read_csv("src/data/schedules/bref.com/bref_202122.csv")
+# for row in df.itertuples():
+#     if row.fetched == 0:
+#         boxscore_url = str(row.boxscore_url).split("/")[-1]
+#         url = bref_base + boxscore_url
+#         print(url)
+#         bref_scrape_chart(url=url, season=season)
+#         # bref_scrape_pbp(url, season=season)
+#         sleep(2)
 
 # ---------* Remove duplicates
 # filepath = 'src/data/teamdashplayers'
@@ -602,3 +600,4 @@ for row in df.itertuples():
 #     print(sql)
 #     cur.execute(sql)
 # cur.close()
+
