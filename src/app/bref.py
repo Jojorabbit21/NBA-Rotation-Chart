@@ -255,9 +255,9 @@ def calculate_minutes(data, playerinfo, match_info:list):
     df = pd.concat([m_df, df], axis=1)
     
     # DB에 저장
-    conn = open_db('players')
-    df.to_sql('players', con=conn, if_exists='append', index=False)
-    conn.close()
+    # conn = open_db('players')
+    # df.to_sql('players', con=conn, if_exists='append', index=False)
+    # conn.close()
     
     # Return
     bs_arr = []
@@ -267,6 +267,14 @@ def calculate_minutes(data, playerinfo, match_info:list):
     return bs_arr
     
 def bref_scrape_schedule(seasons:list=[2022]):
+    '''
+    Data Structure:
+    __________________________________________________________________________________________________
+    date       | visitor | home | visitor_score | home_score | status   | stage   | url
+    --------------------------------------------------------------------------------------------------
+    2022-10-19 | MIL     | LAL  | 130           | 119        | finished | regular | 202210180BOS.html
+    --------------------------------------------------------------------------------------------------
+    '''
     base_url = 'https://www.basketball-reference.com/leagues/NBA_{}_games-{}.html' # ex) 2023 => 2022-23
     boxscore_url = []
     for season in seasons:
@@ -285,6 +293,9 @@ def bref_scrape_schedule(seasons:list=[2022]):
             response = requests.get(url=url, headers=base_header)
             if response.status_code == 200:
                 html = response.text
+                df = pd.read_html(html)[0]
+                df = df[df['Date', 'Visitor/Neutral', 'Home/Neutral', 'PTS', 'PTS.1']]
+                # WIP
                 soup = BeautifulSoup(html, 'lxml')
                 table = soup.select_one('table#schedule')
                 boxscores = table.select("tbody > tr > td:nth-child(7) > a")
@@ -600,4 +611,3 @@ def load_player_matrix(playername):
 #     print(sql)
 #     cur.execute(sql)
 # cur.close()
-
